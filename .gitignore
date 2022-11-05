@@ -1,52 +1,109 @@
-# Prerequisites
-*.d
+#ifndef WIN32_LEAN_AND_MEAN     
+#define WIN32_LEAN_AND_MEAN
+#endif
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <conio.h>
+#include <string.h>
+#pragma comment(lib, "Ws2_32.lib")
+#pragma warning(disable : 4996)
 
-# Linker output
-*.ilk
-*.map
-*.exp
+const char* temp;
 
-# Precompiled Headers
-*.gch
-*.pch
+WSADATA wsaData;
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+int iResult;
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+int main(int argc, char* argv[]) {
+	
+	if(argc <= 1){
+		printf("<-----------------Como usar ----------------->\n");
+		printf("Nome_Do_Programa.exe <site>\n");
+		exit(1);
+	}
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+	struct addrinfo* result = NULL, * ptr = NULL, hints;
+	char buf[55];
+	int value;
+	
+	
+	for (value = 15; value <= 1000; value++) {
+		
+				iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+				if (iResult != 0) {
+					printf("WSAStartup failed: %d\n", iResult);
+					return 1;
+				}
+
+			sprintf(buf, "%d", value);
+			temp = buf;
+
+		
+		ZeroMemory(&hints, sizeof(hints));
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+
+
+		
+		iResult = getaddrinfo(argv[1], temp, &hints, &result);
+
+		if (iResult != 0) {
+			printf("getaddrinfo failed: %d\n", iResult);
+			WSACleanup();
+			return 1;
+		}
+
+
+		SOCKET ConnectSocket = INVALID_SOCKET;
+
+	
+		ptr = result;
+		
+
+		ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+		if (ConnectSocket == INVALID_SOCKET) {
+			printf("Error at socket(): %ld\n", WSAGetLastError());
+			freeaddrinfo(result);
+			WSACleanup();
+			return 1;
+		}
+
+
+		iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+		if (iResult == SOCKET_ERROR) {
+			closesocket(ConnectSocket);
+			ConnectSocket = INVALID_SOCKET;
+		}
+		
+
+
+		if (ConnectSocket != INVALID_SOCKET) {
+			printf("Port open: [%s:%s]!\n", argv[1], temp);
+			WSACleanup();
+			closesocket(ConnectSocket);
+		}
+		else {
+			printf("Port close: [%s:%s]!\n", argv[1], temp);
+			WSACleanup();
+			closesocket(ConnectSocket);
+		}
+
+
+		closesocket(ConnectSocket);
+		freeaddrinfo(result);
+	}
+
+
+	return 0;
+}
+
+
+
